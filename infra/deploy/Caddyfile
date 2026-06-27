@@ -1,0 +1,16 @@
+# REREVI origin reverse proxy.
+# Cloudflare terminates public TLS and tunnels to here on :8080 (plain HTTP).
+# One hostname serves both the Astro app and the Supabase API:
+#   /auth /rest /realtime /storage /functions /graphql  -> Kong (Supabase) :8000
+#   everything else                                      -> Astro app       :4321
+# Caddy runs with host networking, so it reaches the 127.0.0.1-published ports.
+
+:8080 {
+	@supabase path /auth/* /rest/* /realtime/* /storage/* /functions/* /graphql/*
+	handle @supabase {
+		reverse_proxy 127.0.0.1:8000
+	}
+	handle {
+		reverse_proxy 127.0.0.1:4321
+	}
+}

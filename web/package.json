@@ -1,0 +1,25 @@
+{
+  "name": "rerevi-web",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "REREVI — GCSE Eduqas RS revision site (Astro + Supabase)",
+  "license": "MIT",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.2.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.4",
+    "astro": "^5.7.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
+    "tailwindcss": "^4.1.4"
+  }
+}

@@ -1,0 +1,33 @@
+---
+// Live "days to go" to the exam, read from site_config.exam_date.
+interface Props { examDate: string; }
+const { examDate } = Astro.props;
+const exam = new Date(examDate + 'T09:00:00');
+const now = new Date();
+const days = Math.max(0, Math.ceil((exam.getTime() - now.getTime()) / 86_400_000));
+const pretty = exam.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+---
+<div class="countdown card" data-exam={examDate}>
+  <div class="cd-num display" id="cd-days">{days}</div>
+  <div>
+    <div class="cd-label">days until the exam</div>
+    <div class="muted" id="cd-sub">Eduqas GCSE RS · {pretty}</div>
+  </div>
+</div>
+
+<style>
+  .countdown { display: flex; align-items: center; gap: 1.1rem; }
+  .cd-num { font-size: 3.2rem; color: var(--accent-strong); line-height: 1; }
+  .cd-label { font-weight: 600; font-size: 1.05rem; }
+</style>
+
+<script is:inline>
+  (function () {
+    var el = document.querySelector('.countdown');
+    if (!el) return;
+    var exam = new Date(el.getAttribute('data-exam') + 'T09:00:00');
+    var days = Math.max(0, Math.ceil((exam.getTime() - Date.now()) / 86400000));
+    var n = document.getElementById('cd-days');
+    if (n) n.textContent = String(days);
+  })();
+</script>

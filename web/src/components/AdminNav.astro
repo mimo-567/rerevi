@@ -1,0 +1,27 @@
+---
+const path = Astro.url.pathname;
+const items = [
+  { href: '/admin', label: 'Overview' },
+  { href: '/admin/questions', label: 'Questions' },
+  { href: '/admin/keywords', label: 'Keywords' },
+];
+const msg = Astro.url.searchParams.get('msg');
+const error = Astro.url.searchParams.get('error');
+---
+<div class="admin-head">
+  <h1>⚙ Admin</h1>
+  <nav class="admin-nav">
+    {items.map((i) => <a href={i.href} class:list={['anav', { active: path === i.href }]}>{i.label}</a>)}
+  </nav>
+</div>
+{msg && <div class="notice" style="margin-bottom:1rem;">{msg}</div>}
+{error && <div class="notice notice-danger" style="margin-bottom:1rem;">{error}</div>}
+
+<style>
+  .admin-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .admin-head h1 { margin: 0; }
+  .admin-nav { display: flex; gap: 0.4rem; }
+  .anav { padding: 0.4rem 0.8rem; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem; }
+  .anav:hover { background: var(--surface-2); text-decoration: none; }
+  .anav.active { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
+</style>

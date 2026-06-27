@@ -1,0 +1,119 @@
+---
+import Base from '@/layouts/Base.astro';
+import AdminNav from '@/components/AdminNav.astro';
+import { adminClient } from '@/lib/supabase';
+
+if (!Astro.locals.isAdmin) return Astro.redirect('/sign-in?returnTo=/admin');
+
+const admin = adminClient();
+
+// users = auth emails joined with profile role/status
+const { data: authList } = await admin.auth.admin.listUsers({ perPage: 200 });
+const { data: profiles } = await admin.from('profiles').select('id, display_name, role, status');
+const pMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+const users = (authList?.users ?? []).map((u) => ({
+  id: u.id, email: u.email, created_at: u.created_at,
+  ...(pMap.get(u.id) ?? { role: 'user', status: 'pending', display_name: null }),
+}));
+const pending = users.filter((u) => u.status === 'pending');
+
+// content snapshot
+const [{ count: qCount }, { count: kCount }, { count: aCount }] = await Promise.all([
+  admin.from('questions').select('*', { count: 'exact', head: true }),
+  admin.from('keywords').select('*', { count: 'exact', head: true }),
+  admin.from('attempts').select('*', { count: 'exact', head: true }),
+]);
+const { data: config } = await admin.from('site_config').select('*').single();
+const myId = Astro.locals.user?.id;
+---
+<Base title="Admin">
+  <AdminNav />
+
+  <div class="snap">
+    <div class="card stat"><span class="num display">{users.length}</span><span class="muted">users ({pending.length} pending)</span></div>
+    <div class="card stat"><span class="num display">{qCount ?? 0}</span><span class="muted">questions</span></div>
+    <div class="card stat"><span class="num display">{kCount ?? 0}</span><span class="muted">keywords</span></div>
+    <div class="card stat"><span class="num display">{aCount ?? 0}</span><span class="muted">saved attempts</span></div>
+  </div>
+
+  {pending.length > 0 && (
+    <div class="card" style="margin-top:1rem;">
+      <h3>Pending approvals ({pending.length})</h3>
+      <table class="t">
+        <tbody>
+          {pending.map((u) => (
+            <tr>
+              <td><strong>{u.display_name || '—'}</strong><br /><span class="muted small">{u.email}</span></td>
+              <td class="muted small">{new Date(u.created_at).toLocaleDateString('en-GB')}</td>
+              <td class="actions">
+                <form method="POST" action="/api/admin/user-status"><input type="hidden" name="user_id" value={u.id} /><input type="hidden" name="action" value="approve" /><button class="btn btn-sm btn-primary">Approve</button></form>
+                <form method="POST" action="/api/admin/user-status"><input type="hidden" name="user_id" value={u.id} /><input type="hidden" name="action" value="suspend" /><button class="btn btn-sm">Reject</button></form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+
+  <div class="card" style="margin-top:1rem;">
+    <h3>All accounts</h3>
+    <table class="t">
+      <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {users.map((u) => (
+          <tr>
+            <td><strong>{u.display_name || '—'}</strong><br /><span class="muted small">{u.email}</span></td>
+            <td><span class:list={['pill', { 'pill-muted': u.role !== 'admin' }]}>{u.role}</span></td>
+            <td><span class:list={['pill', { 'pill-muted': u.status !== 'approved' }]}>{u.status}</span></td>
+            <td class="actions">
+              {u.status !== 'approved' && <form method="POST" action="/api/admin/user-status"><input type="hidden" name="user_id" value={u.id} /><input type="hidden" name="action" value="approve" /><button class="btn btn-sm">Approve</button></form>}
+              {u.status === 'approved' && u.id !== myId && <form method="POST" action="/api/admin/user-status"><input type="hidden" name="user_id" value={u.id} /><input type="hidden" name="action" value="suspend" /><button class="btn btn-sm">Suspend</button></form>}
+              {u.role !== 'admin' && <form method="POST" action="/api/admin/user-status"><input type="hidden" name="user_id" value={u.id} /><input type="hidden" name="action" value="make-admin" /><button class="btn btn-sm">Make admin</button></form>}
+              {u.id !== myId && <form method="POST" action="/api/admin/user-status" onsubmit="return confirm('Delete this user and all their data?');"><input type="hidden" name="user_id" value={u.id} /><input type="hidden" name="action" value="delete" /><button class="btn btn-sm btn-danger">Delete</button></form>}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="two" style="margin-top:1rem;">
+    <div class="card">
+      <h3>Site settings</h3>
+      <form method="POST" action="/api/admin/site-config" class="cfg">
+        <div><label for="brand">Brand name</label><input class="input" id="brand" name="brand_name" value={config?.brand_name ?? 'REREVI'} /></div>
+        <div><label for="email">Contact email</label><input class="input" id="email" name="contact_email" type="email" value={config?.contact_email ?? ''} /></div>
+        <div><label for="exam">Exam date</label><input class="input" id="exam" name="exam_date" type="date" value={config?.exam_date ?? '2027-06-01'} /></div>
+        <button class="btn btn-primary" type="submit">Save settings</button>
+      </form>
+    </div>
+    <div class="card">
+      <h3>Deploy & content</h3>
+      <p class="muted small">Quick links and the deploy flow for pushing updates to the server.</p>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.6rem 0;">
+        <a class="btn btn-sm" href="/admin/questions">Manage questions</a>
+        <a class="btn btn-sm" href="/admin/keywords">Manage keywords</a>
+      </div>
+      <p class="muted small">To deploy code changes on the VM:</p>
+      <pre class="deploy">cd ~/rerevi-app && git pull && docker compose up -d --build</pre>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .snap { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; }
+  .stat { display: flex; flex-direction: column; gap: 0.1rem; }
+  .num { font-size: 2rem; color: var(--accent-strong); line-height: 1; }
+  .t { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .t th { text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); padding: 0.4rem 0.5rem; }
+  .t td { padding: 0.5rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .small { font-size: 0.8rem; }
+  .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .actions form { display: inline; }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .cfg { display: grid; gap: 0.7rem; }
+  .deploy { background: var(--surface-2); padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.8rem; overflow:auto; }
+  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+</style>

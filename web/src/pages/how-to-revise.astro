@@ -1,0 +1,55 @@
+---
+import Base from '@/layouts/Base.astro';
+---
+<Base title="How to Revise">
+  <h1>How to revise with REREVI</h1>
+  <p class="lede muted">Reading notes feels like revision but barely moves your grade. Answering questions and marking them does. REREVI is built around that loop.</p>
+
+  <div class="card loop">
+    <h3>The 3-step loop</h3>
+    <div class="loop-grid">
+      <div><span class="big display accent">1</span><strong>Generate</strong><p class="muted">Make a short paper for a topic you've actually been taught. Start with one theme, not the whole spec.</p></div>
+      <div><span class="big display accent">2</span><strong>Answer</strong><p class="muted">Time yourself — roughly a minute a mark. Write a real answer, not bullet points, especially for (c) and (d).</p></div>
+      <div><span class="big display accent">3</span><strong>Mark</strong><p class="muted">Use AI marking or reveal the scheme and self-mark. Save the score, then redo your weakest part.</p></div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h3>Know the four parts</h3>
+      <ul>
+        <li><strong>(a) 2 marks</strong> — define the term. One sharp sentence.</li>
+        <li><strong>(b) 5 marks</strong> — describe beliefs. Aim for 3–4 developed points.</li>
+        <li><strong>(c) 8 marks</strong> — explain, often from two traditions. Use teachings/sources.</li>
+        <li><strong>(d) 15 marks</strong> — evaluate. Argue <em>both</em> sides, use religious teaching, and reach a justified conclusion. One (d) per paper also marks SPaG.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Where marks are lost</h3>
+      <ul>
+        <li>(d) answers that are one-sided or have no conclusion.</li>
+        <li>No scripture/source or specialist terms.</li>
+        <li>Describing when the question says <em>explain</em> or <em>evaluate</em>.</li>
+        <li>Running out of time on (c)/(d) — practise those under timing.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>A sensible week</h3>
+    <p class="muted">Pick one theme. Mon: keywords + a (a)/(b) drill. Wed: a (c) on the same theme, AI-marked. Fri: a full A–D for that theme, timed and self-marked. Track the scores and watch the trend on your <a href="/account">account page</a>.</p>
+    <a href="/generator" class="btn btn-primary">Start now →</a>
+  </div>
+</Base>
+
+<style>
+  .lede { font-size: 1.1rem; max-width: 62ch; }
+  .loop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 0.5rem; }
+  .loop-grid > div { display: flex; flex-direction: column; gap: 0.3rem; }
+  .big { font-size: 2.2rem; line-height: 1; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  ul { color: var(--text); } ul li { margin: 0.35rem 0; }
+  .card + .card, .loop { margin-top: 0; } .card { margin-bottom: 1rem; }
+  h3 { margin-top: 0; }
+  @media (max-width: 760px) { .loop-grid, .cols { grid-template-columns: 1fr; } }
+</style>

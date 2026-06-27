@@ -1,0 +1,181 @@
+---
+import Base from '@/layouts/Base.astro';
+import PaperView from '@/components/PaperView.astro';
+import { createServerClient } from '@/lib/supabase';
+import { assembleFullPaper, assembleCustom, type Paper, type SourcePref, type SpagMode, type CustomReq } from '@/lib/generator';
+import { ALL_TOPICS, COMPONENTS, Q_TYPE_ORDER, type QType } from '@/lib/spec';
+
+const url = Astro.url;
+const params = url.searchParams;
+const tab = params.get('tab') === 'custom' ? 'custom' : 'full';
+const generated = params.get('go') === '1';
+const error = params.get('error');
+
+const supabase = createServerClient(Astro.cookies, Astro.request.headers);
+const { user, isApproved } = Astro.locals;
+
+const seed = params.get('seed') || Math.random().toString(36).slice(2, 8);
+const source = (params.get('source') as SourcePref) || 'ANY';
+const excludeYears = (params.get('exclude') || '').split(',').map((s) => s.trim()).filter(Boolean);
+
+let paper: Paper | null = null;
+let assembledSource: 'FULL_PAPER' | 'CUSTOM' = 'FULL_PAPER';
+
+if (generated) {
+  if (tab === 'full') {
+    const component = Number(params.get('component') || '1');
+    const spag = (params.get('spag') as SpagMode) || 'first';
+    paper = await assembleFullPaper(supabase, { component, source, spag, excludeYears, seed });
+    assembledSource = 'FULL_PAPER';
+  } else {
+    const topics = (params.getAll('topic')).map((v) => {
+      const [c, t] = v.split('-').map(Number);
+      return { component: c, topic: t };
+    });
+    const types = params.getAll('type').filter((t): t is QType => Q_TYPE_ORDER.includes(t as QType));
+    const req: CustomReq = {
+      topics: topics.length ? topics : ALL_TOPICS.map((t) => ({ component: t.component, topic: t.topic })),
+      types: types.length ? types : ['A'],
+      count: Math.max(1, Math.min(20, Number(params.get('count') || '5'))),
+      mode: params.get('mode') === 'SET' ? 'SET' : 'FLAT',
+      source, excludeYears, seed,
+    };
+    paper = await assembleCustom(supabase, req);
+    assembledSource = 'CUSTOM';
+  }
+}
+---
+<Base title="Paper & Question Generator">
+  <h1>Generators & Mark Schemes</h1>
+  <p class="muted">Build an exam-shaped paper, or drill specific topics. Each slot is filled only with questions valid for that part. Mark schemes hide until you reveal them.</p>
+
+  <div class="tabs no-print">
+    <a href="/generator?tab=full" class:list={['tab', { active: tab === 'full' }]}>📄 Full Paper</a>
+    <a href="/generator?tab=custom" class:list={['tab', { active: tab === 'custom' }]}>🎯 Custom</a>
+  </div>
+
+  {error && <div class="notice notice-danger no-print" style="margin:1rem 0;">{error}</div>}
+
+  {tab === 'full' ? (
+    <form method="GET" class="card gen-form no-print">
+      <input type="hidden" name="tab" value="full" />
+      <input type="hidden" name="go" value="1" />
+      <div class="form-grid">
+        <div>
+          <label for="component">Component</label>
+          <select class="input" id="component" name="component">
+            {COMPONENTS.map((c) => <option value={c.component} selected={params.get('component') === String(c.component)}>{c.title} · {c.marks} marks</option>)}
+          </select>
+        </div>
+        <div>
+          <label for="spag">SPaG on (d) parts</label>
+          <select class="input" id="spag" name="spag">
+            <option value="first" selected={params.get('spag') === 'first' || !params.get('spag')}>First (d) only (real-paper style)</option>
+            <option value="all" selected={params.get('spag') === 'all'}>All (d) parts</option>
+            <option value="none" selected={params.get('spag') === 'none'}>None</option>
+          </select>
+        </div>
+        <div>
+          <label for="source">Question source</label>
+          <select class="input" id="source" name="source">
+            <option value="ANY" selected={source === 'ANY'}>Any source</option>
+            <option value="E" selected={source === 'E'}>Past-exam only (most authentic)</option>
+            <option value="ETM" selected={source === 'ETM'}>Exam + textbook + misc</option>
+          </select>
+        </div>
+        <div>
+          <label for="exclude">Exclude exam years <span class="muted">(e.g. 2023,2024)</span></label>
+          <input class="input" id="exclude" name="exclude" value={excludeYears.join(',')} placeholder="comma-separated" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Generate paper</button>
+        <button class="btn" type="submit" name="seed" value={Math.random().toString(36).slice(2, 8)}>🔀 Shuffle</button>
+        <span class="muted small">seed: <code>{seed}</code></span>
+        <input type="hidden" name="seed" value={seed} />
+      </div>
+    </form>
+  ) : (
+    <form method="GET" class="card gen-form no-print">
+      <input type="hidden" name="tab" value="custom" />
+      <input type="hidden" name="go" value="1" />
+      <div>
+        <label>Topics</label>
+        <div class="checks">
+          {COMPONENTS.map((c) => (
+            <div class="check-col">
+              <span class="muted small">{c.title}</span>
+              {ALL_TOPICS.filter((t) => t.component === c.component).map((t) => (
+                <label class="chk"><input type="checkbox" name="topic" value={`${t.component}-${t.topic}`} checked={params.getAll('topic').includes(`${t.component}-${t.topic}`)} /> {t.name}</label>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label>Question types</label>
+          <div class="types">
+            {Q_TYPE_ORDER.map((ty) => (
+              <label class="chk"><input type="checkbox" name="type" value={ty} checked={params.getAll('type').includes(ty)} /> {ty}</label>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label for="count">How many <span class="muted">(per type × topic)</span></label>
+          <input class="input" id="count" name="count" type="number" min="1" max="20" value={params.get('count') || '5'} />
+        </div>
+        <div>
+          <label for="mode">Layout</label>
+          <select class="input" id="mode" name="mode">
+            <option value="FLAT" selected={params.get('mode') !== 'SET'}>Flat list (e.g. "5 A-type in LD")</option>
+            <option value="SET" selected={params.get('mode') === 'SET'}>A→D sets (e.g. "ABCD for LD")</option>
+          </select>
+        </div>
+        <div>
+          <label for="csource">Question source</label>
+          <select class="input" id="csource" name="source">
+            <option value="ANY" selected={source === 'ANY'}>Any source</option>
+            <option value="E" selected={source === 'E'}>Past-exam only</option>
+            <option value="ETM" selected={source === 'ETM'}>Exam + textbook + misc</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Generate</button>
+        <button class="btn" type="submit" name="seed" value={Math.random().toString(36).slice(2, 8)}>🔀 Shuffle</button>
+        <span class="muted small">seed: <code>{seed}</code></span>
+        <input type="hidden" name="seed" value={seed} />
+      </div>
+    </form>
+  )}
+
+  {paper && (
+    paper.questions.length === 0 && paper.gaps.length > 0 ? (
+      <div class="notice notice-warn" style="margin-top:1.5rem;">
+        No questions in the bank match this request yet. As the Question Bank fills up
+        (via the <a href="/admin">admin dashboard</a>), generated papers will populate.
+        Missing: {paper.gaps.slice(0, 12).join(' · ')}{paper.gaps.length > 12 ? ' …' : ''}
+      </div>
+    ) : (
+      <div style="margin-top:1.5rem;">
+        <PaperView paper={paper} canSave={!!user} isApproved={isApproved} source={assembledSource} />
+      </div>
+    )
+  )}
+</Base>
+
+<style>
+  .tabs { display: flex; gap: 0.5rem; margin: 1rem 0; }
+  .tab { padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 10px; color: var(--text); }
+  .tab:hover { text-decoration: none; background: var(--surface-2); }
+  .tab.active { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
+  .gen-form { display: grid; gap: 1rem; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+  .form-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .small { font-size: 0.8rem; }
+  .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.4rem; }
+  .check-col { display: flex; flex-direction: column; gap: 0.3rem; }
+  .chk { font-weight: 400; color: var(--text); display: flex; gap: 0.4rem; align-items: center; }
+  .types { display: flex; gap: 1rem; margin-top: 0.4rem; }
+</style>

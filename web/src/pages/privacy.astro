@@ -1,0 +1,48 @@
+---
+import Base from '@/layouts/Base.astro';
+import { createServerClient } from '@/lib/supabase';
+const supabase = createServerClient(Astro.cookies, Astro.request.headers);
+const { data: config } = await supabase.from('site_config').select('contact_email').single();
+const contact = config?.contact_email ?? 'Zshirazi163@robertclack.co.uk';
+---
+<Base title="Privacy">
+  <div style="max-width: 720px;">
+    <h1>Privacy notice</h1>
+    <p class="muted">Plain-English summary of what REREVI stores and your rights. This is a student project, written to keep data to a minimum.</p>
+
+    <h3>What we store</h3>
+    <ul>
+      <li><strong>Your email</strong> — to sign you in.</li>
+      <li><strong>An optional display name</strong> — shown instead of your email. You choose it; a real name is never required.</li>
+      <li><strong>Your saved scores</strong> — the papers you mark and their results, so you can track progress.</li>
+    </ul>
+    <p>We do <strong>not</strong> collect your real name, date of birth, location, or any analytics/tracking cookies. The only cookies are the ones that keep you signed in.</p>
+
+    <h3>Where it lives</h3>
+    <p>On a private server the owner runs. Data isn't sold or shared. The site is open-source, but the database is not public.</p>
+
+    <h3>Your rights</h3>
+    <ul>
+      <li><strong>Access / export:</strong> download everything we hold from your <a href="/account">account page</a>.</li>
+      <li><strong>Erasure:</strong> delete your account and all scores at any time, instantly, from the same page.</li>
+      <li><strong>Correction:</strong> change your display name, or ask the owner.</li>
+    </ul>
+
+    <h3>Approval & invites</h3>
+    <p>New accounts are approved manually by the owner. There's no automated email — invites and any password resets are handled by the owner directly.</p>
+
+    <h3>Contact</h3>
+    <p>Questions or requests: <a href={`mailto:${contact}`}>{contact}</a>.</p>
+
+    <div class="notice notice-warn" style="margin-top:1.5rem;">
+      This notice is written in good faith to minimise data and respect your rights;
+      it isn't formal legal advice.
+    </div>
+  </div>
+</Base>
+
+<style>
+  ul { color: var(--text); }
+  li { margin: 0.3rem 0; }
+  h3 { margin-top: 1.5rem; }
+</style>

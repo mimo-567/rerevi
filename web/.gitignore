@@ -1,0 +1,21 @@
+# build output
+dist/
+.output/
+.vercel/
+.netlify/
+
+# deps
+node_modules/
+
+# astro
+.astro/
+
+# env / secrets — NEVER commit
+.env
+.env.*
+!.env.example
+
+# os / editor
+.DS_Store
+*.log
+npm-debug.log*

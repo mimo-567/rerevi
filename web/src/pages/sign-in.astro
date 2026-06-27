@@ -1,0 +1,53 @@
+---
+import Base from '@/layouts/Base.astro';
+
+// Already signed in? Go to the account page.
+if (Astro.locals.user) return Astro.redirect('/account');
+
+const error = Astro.url.searchParams.get('error');
+const returnTo = Astro.url.searchParams.get('returnTo') || '/account';
+---
+<Base title="Sign in">
+  <div class="auth-wrap">
+    <div class="card">
+      <h1>Sign in</h1>
+      <p class="muted">Welcome back. Sign in to save and track your scores.</p>
+
+      {error && <div class="notice notice-danger" style="margin:1rem 0;">{error}</div>}
+
+      <form method="POST" action="/api/auth/login" class="auth-form">
+        <input type="hidden" name="returnTo" value={returnTo} />
+        <div>
+          <label for="email">Email</label>
+          <input class="input" id="email" name="email" type="email" autocomplete="email" required />
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input class="input" id="password" name="password" type="password" autocomplete="current-password" required />
+        </div>
+        <button class="btn btn-primary" type="submit">Sign in</button>
+      </form>
+
+      <div class="or"><span>or</span></div>
+      <a href="/api/auth/google" class="btn" style="width:100%; justify-content:center;">Continue with Google</a>
+
+      <p class="muted" style="margin-top:1.2rem;">
+        No account yet? <a href="/register">Create one</a>. New accounts need admin
+        approval before scores can be saved.
+      </p>
+      <p class="muted small">
+        Forgot your password? There's no automated email on REREVI — message the
+        owner to reset it, or sign in with Google.
+      </p>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .auth-wrap { max-width: 440px; margin: 1rem auto; }
+  .auth-form { display: grid; gap: 0.9rem; margin-top: 1rem; }
+  .auth-form button { justify-content: center; }
+  .or { display: flex; align-items: center; gap: 0.75rem; color: var(--muted); margin: 1.1rem 0; }
+  .or::before, .or::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+  .small { font-size: 0.8rem; }
+</style>

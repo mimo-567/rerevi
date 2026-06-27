@@ -1,0 +1,63 @@
+---
+// Two independent toggles: colour theme (auto→light→dark) and "Bitcount
+// Everything" typography. Persisted in localStorage; applied without a reload.
+---
+<div class="theme-controls no-print">
+  <button id="theme-toggle" class="btn btn-sm" type="button" title="Colour theme" aria-label="Toggle colour theme">
+    <span id="theme-icon">◐</span><span id="theme-label" class="tc-label">Auto</span>
+  </button>
+  <button id="type-toggle" class="btn btn-sm" type="button" title="Bitcount Everything mode" aria-label="Toggle Bitcount Everything">
+    <span aria-hidden="true">▦</span><span class="tc-label">Pixel</span>
+  </button>
+</div>
+
+<style>
+  .theme-controls { display: inline-flex; gap: 0.4rem; }
+  .tc-label { font-size: 0.8rem; }
+  #type-toggle[aria-pressed='true'] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-contrast);
+  }
+  @media (max-width: 720px) { .tc-label { display: none; } }
+</style>
+
+<script is:inline>
+  (function () {
+    var root = document.documentElement;
+    var order = ['auto', 'light', 'dark'];
+    var icons = { auto: '◐', light: '☀', dark: '☾' };
+    var labels = { auto: 'Auto', light: 'Light', dark: 'Dark' };
+
+    function curTheme() { return localStorage.getItem('rerevi-theme') || 'auto'; }
+    function paintTheme(t) {
+      if (t === 'auto') root.removeAttribute('data-theme');
+      else root.setAttribute('data-theme', t);
+      var ic = document.getElementById('theme-icon');
+      var lb = document.getElementById('theme-label');
+      if (ic) ic.textContent = icons[t];
+      if (lb) lb.textContent = labels[t];
+    }
+    function paintType(ty) {
+      var btn = document.getElementById('type-toggle');
+      if (ty === 'bitcount') { root.setAttribute('data-type', 'bitcount'); btn && btn.setAttribute('aria-pressed', 'true'); }
+      else { root.removeAttribute('data-type'); btn && btn.setAttribute('aria-pressed', 'false'); }
+    }
+
+    paintTheme(curTheme());
+    paintType(localStorage.getItem('rerevi-type') || 'normal');
+
+    var tt = document.getElementById('theme-toggle');
+    if (tt) tt.addEventListener('click', function () {
+      var next = order[(order.indexOf(curTheme()) + 1) % order.length];
+      localStorage.setItem('rerevi-theme', next);
+      paintTheme(next);
+    });
+    var ty = document.getElementById('type-toggle');
+    if (ty) ty.addEventListener('click', function () {
+      var next = (localStorage.getItem('rerevi-type') === 'bitcount') ? 'normal' : 'bitcount';
+      localStorage.setItem('rerevi-type', next);
+      paintType(next);
+    });
+  })();
+</script>

@@ -1,0 +1,49 @@
+---
+import Base from '@/layouts/Base.astro';
+
+if (Astro.locals.user) return Astro.redirect('/account');
+const error = Astro.url.searchParams.get('error');
+---
+<Base title="Create account">
+  <div class="auth-wrap">
+    <div class="card">
+      <h1>Create your account</h1>
+      <p class="muted">
+        Accounts let you save scores and track progress. Every sign-up is approved
+        by the owner before scores can be saved — we keep this small and trusted.
+      </p>
+
+      {error && <div class="notice notice-danger" style="margin:1rem 0;">{error}</div>}
+
+      <form method="POST" action="/api/auth/register" class="auth-form">
+        <div>
+          <label for="display_name">Display name <span class="muted">(optional, shown instead of your email)</span></label>
+          <input class="input" id="display_name" name="display_name" type="text" maxlength="40" autocomplete="nickname" />
+        </div>
+        <div>
+          <label for="email">Email</label>
+          <input class="input" id="email" name="email" type="email" autocomplete="email" required />
+        </div>
+        <div>
+          <label for="password">Password <span class="muted">(min 8 characters)</span></label>
+          <input class="input" id="password" name="password" type="password" minlength="8" autocomplete="new-password" required />
+        </div>
+        <label class="consent">
+          <input type="checkbox" name="consent" value="1" required />
+          <span>I've read the <a href="/privacy">privacy notice</a> and consent to REREVI storing my email, optional display name, and saved scores.</span>
+        </label>
+        <button class="btn btn-primary" type="submit">Create account</button>
+      </form>
+
+      <p class="muted" style="margin-top:1rem;">Already have an account? <a href="/sign-in">Sign in</a>.</p>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .auth-wrap { max-width: 460px; margin: 1rem auto; }
+  .auth-form { display: grid; gap: 0.9rem; margin-top: 1rem; }
+  .auth-form button { justify-content: center; }
+  .consent { display: flex; gap: 0.55rem; align-items: start; font-weight: 400; color: var(--text); font-size: 0.88rem; }
+  .consent input { margin-top: 0.25rem; }
+</style>

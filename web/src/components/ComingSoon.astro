@@ -1,0 +1,21 @@
+---
+interface Props { title: string; blurb: string; bullets?: string[]; }
+const { title, blurb, bullets = [] } = Astro.props;
+---
+<div class="cs card">
+  <span class="pill">Coming soon</span>
+  <h1 class="display">{title}</h1>
+  <p class="lede muted">{blurb}</p>
+  {bullets.length > 0 && (
+    <ul>{bullets.map((b) => <li>{b}</li>)}</ul>
+  )}
+  <a href="/" class="btn">← Back home</a>
+</div>
+
+<style>
+  .cs { max-width: 640px; margin: 2rem auto; text-align: center; }
+  .cs h1 { font-size: 2.2rem; margin: 0.6rem 0; }
+  .lede { font-size: 1.1rem; }
+  .cs ul { text-align: left; display: inline-block; color: var(--text); margin: 1rem 0; }
+  .cs li { margin: 0.35rem 0; }
+</style>

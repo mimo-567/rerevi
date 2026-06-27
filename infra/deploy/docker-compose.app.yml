@@ -1,0 +1,32 @@
+# REREVI app stack: the Astro server + a Caddy origin proxy.
+# Runs alongside the Supabase stack (which stays in ~/rerevi).
+# Bring up:  ./deploy.sh    (builds with the PUBLIC_* vars from web/.env)
+services:
+  app:
+    build:
+      context: ../../web
+      args:
+        PUBLIC_SUPABASE_URL: ${PUBLIC_SUPABASE_URL}
+        PUBLIC_SUPABASE_ANON_KEY: ${PUBLIC_SUPABASE_ANON_KEY}
+        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL}
+    image: rerevi-app:latest
+    container_name: rerevi-app
+    restart: unless-stopped
+    env_file:
+      - ../../web/.env
+    ports:
+      - "127.0.0.1:4321:4321"   # localhost only; Caddy/tunnel reach it
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: rerevi-caddy
+    restart: unless-stopped
+    network_mode: host          # so it can reach 127.0.0.1:8000 (Kong) + :4321 (app)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

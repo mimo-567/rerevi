@@ -1,0 +1,193 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ *
+ * REREVI design tokens
+ * Palette: confident teal accent on neutral greys — deliberately NOT
+ * re.ibzz.uk's gold (#c9a84c) + purple (#8b6fce).
+ * Two independent axes:
+ *   data-theme   = light | dark   (auto resolves via prefers-color-scheme)
+ *   data-type    = normal | bitcount  ("Bitcount Everything" mode)
+ * ------------------------------------------------------------------ */
+
+:root {
+  --font-display: 'Bitcount Single', 'Courier New', monospace;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* light theme (default) */
+  --bg: #f6f8f7;
+  --surface: #ffffff;
+  --surface-2: #eceff0;
+  --text: #13201d;
+  --muted: #586a66;
+  --border: #dce3e1;
+  --accent: #0e9384;
+  --accent-strong: #0b7569;
+  --accent-contrast: #ffffff;
+  --accent-soft: #d6f0ec;
+  --amber: #d97706;
+  --danger: #c0392b;
+  --shadow: 0 1px 2px rgba(16, 32, 29, 0.04), 0 8px 24px rgba(16, 32, 29, 0.06);
+  --radius: 14px;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0b1413;
+  --surface: #111d1b;
+  --surface-2: #182624;
+  --text: #e7efed;
+  --muted: #93a7a2;
+  --border: #213331;
+  --accent: #2dd4bf;
+  --accent-strong: #5eead4;
+  --accent-contrast: #06231f;
+  --accent-soft: #133029;
+  --amber: #fbbf24;
+  --danger: #f87171;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+/* AUTO: when no explicit data-theme is set, follow the OS. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #0b1413;
+    --surface: #111d1b;
+    --surface-2: #182624;
+    --text: #e7efed;
+    --muted: #93a7a2;
+    --border: #213331;
+    --accent: #2dd4bf;
+    --accent-strong: #5eead4;
+    --accent-contrast: #06231f;
+    --accent-soft: #133029;
+    --amber: #fbbf24;
+    --danger: #f87171;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.35);
+  }
+}
+
+/* "Bitcount Everything": render the whole UI in the pixel display font. */
+:root[data-type='bitcount'] {
+  --font-body: var(--font-display);
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv05';
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* ---- reusable components ---- */
+.container {
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.4rem;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+.btn:hover { background: var(--surface-2); text-decoration: none; }
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+.btn-primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn-sm { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pill-muted { background: var(--surface-2); color: var(--muted); }
+
+.input, select.input, textarea.input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+}
+.input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+label { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+
+.muted { color: var(--muted); }
+.accent { color: var(--accent-strong); }
+.notice {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 0.75rem 1rem;
+  border-radius: 0 10px 10px 0;
+  color: var(--text);
+}
+.notice-warn { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 14%, transparent); }
+.notice-danger { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+/* ---- print: tidy paper / mark-scheme output ---- */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; color: #000; }
+  .card { box-shadow: none; border: 1px solid #ccc; }
+  .page-break { page-break-before: always; }
+}

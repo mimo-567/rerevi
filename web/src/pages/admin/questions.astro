@@ -1,0 +1,81 @@
+---
+import Base from '@/layouts/Base.astro';
+import AdminNav from '@/components/AdminNav.astro';
+import { adminClient } from '@/lib/supabase';
+import { topicLabel } from '@/lib/spec';
+
+if (!Astro.locals.isAdmin) return Astro.redirect('/sign-in?returnTo=/admin/questions');
+const admin = adminClient();
+const { data: questions } = await admin
+  .from('questions')
+  .select('qid, component, topic, question_type, tariff, question_text')
+  .order('qid');
+---
+<Base title="Admin · Questions">
+  <AdminNav />
+
+  <div class="card">
+    <h3>Add / edit a question</h3>
+    <p class="muted small">Enter a QID — source, component, topic, type and tariff are parsed from it. Re-using an existing QID edits it.</p>
+    <form method="POST" action="/api/admin/question" class="qform">
+      <input type="hidden" name="action" value="upsert" />
+      <div class="row2">
+        <div><label for="qid">QID</label><input class="input mono" id="qid" name="qid" placeholder="M.my-pack.1.2.001.A" required /></div>
+        <div><label for="spec_point">Spec point <span class="muted">(optional)</span></label><input class="input" id="spec_point" name="spec_point" placeholder="LD-2" /></div>
+      </div>
+      <div><label for="question_text">Question text</label><textarea class="input" id="question_text" name="question_text" rows="2" required></textarea></div>
+      <div><label for="mark_scheme">Mark scheme <span class="muted">(band descriptors)</span></label><textarea class="input" id="mark_scheme" name="mark_scheme" rows="5" required></textarea></div>
+      <div><label for="indicative">Indicative content <span class="muted">(optional)</span></label><textarea class="input" id="indicative" name="indicative" rows="2"></textarea></div>
+      <label class="chk"><input type="checkbox" name="spag" /> SPaG applies (for (d) parts)</label>
+      <button class="btn btn-primary" type="submit">Save question</button>
+    </form>
+  </div>
+
+  <details class="card" style="margin-top:1rem;">
+    <summary><strong>Bulk import (CSV)</strong></summary>
+    <p class="muted small">Header: <code>qid,question_text,mark_scheme,indicative,spag</code>. Other fields parse from the QID. Existing QIDs are updated.</p>
+    <form method="POST" action="/api/admin/question-import">
+      <textarea class="input mono" name="csv" rows="6" placeholder="qid,question_text,mark_scheme,indicative,spag
+M.my-pack.1.1.001.A,&quot;What is meant by 'agape'?&quot;,&quot;2 marks: …&quot;,&quot;selfless love&quot;,false"></textarea>
+      <button class="btn" type="submit" style="margin-top:0.6rem;">Import CSV</button>
+    </form>
+  </details>
+
+  <div class="card" style="margin-top:1rem;">
+    <h3>Question Bank ({questions?.length ?? 0})</h3>
+    <table class="t">
+      <thead><tr><th>QID</th><th>Topic</th><th>Type</th><th>Question</th><th></th></tr></thead>
+      <tbody>
+        {(questions ?? []).map((q) => (
+          <tr>
+            <td class="mono small">{q.qid}</td>
+            <td class="small">{topicLabel(q.component, q.topic)}</td>
+            <td>{q.question_type} <span class="muted">({q.tariff})</span></td>
+            <td class="small">{q.question_text.slice(0, 70)}{q.question_text.length > 70 ? '…' : ''}</td>
+            <td class="actions">
+              <a class="btn btn-sm" href={`/question-lookup?qid=${encodeURIComponent(q.qid)}`}>View</a>
+              <form method="POST" action="/api/admin/question" onsubmit="return confirm('Delete this question?');"><input type="hidden" name="action" value="delete" /><input type="hidden" name="qid" value={q.qid} /><button class="btn btn-sm btn-danger">Delete</button></form>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    {(!questions || questions.length === 0) && <p class="muted">No questions yet — add one above.</p>}
+  </div>
+</Base>
+
+<style>
+  .qform { display: grid; gap: 0.7rem; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+  .mono { font-family: ui-monospace, monospace; }
+  .small { font-size: 0.82rem; }
+  .chk { display: flex; gap: 0.45rem; align-items: center; font-weight: 400; color: var(--text); }
+  .t { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .t th { text-align: left; color: var(--muted); border-bottom: 1px solid var(--border); padding: 0.4rem 0.5rem; }
+  .t td { padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .actions { display: flex; gap: 0.3rem; }
+  .actions form { display: inline; }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  textarea.input { resize: vertical; }
+  @media (max-width: 640px) { .row2 { grid-template-columns: 1fr; } }
+</style>

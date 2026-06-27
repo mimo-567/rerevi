@@ -1,0 +1,32 @@
+---
+import { GITHUB_URL } from '@/lib/nav';
+const year = new Date().getFullYear();
+---
+<footer class="site-footer no-print">
+  <div class="container footer-inner">
+    <div>
+      <span class="display accent">REREVI</span>
+      <p class="muted small">
+        An independent GCSE Eduqas Religious Studies revision project. Made for our
+        year group. Not affiliated with Eduqas/WJEC — always check the
+        <a href="https://www.eduqas.co.uk/qualifications/religious-studies-gcse/" target="_blank" rel="noopener">official spec</a>.
+      </p>
+    </div>
+    <nav class="footer-links">
+      <a href="/how-to-revise">How to revise</a>
+      <a href="/privacy">Privacy</a>
+      <a href={GITHUB_URL} target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <p class="muted small">
+      © {year} Zafir Shirazi · Code MIT · Content CC-BY
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer { border-top: 1px solid var(--border); background: var(--surface); margin-top: 2rem; }
+  .footer-inner { display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: space-between; align-items: start; padding-block: 1.75rem; }
+  .footer-inner > div { max-width: 420px; }
+  .small { font-size: 0.8rem; }
+  .footer-links { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+</style>

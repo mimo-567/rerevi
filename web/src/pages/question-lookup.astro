@@ -1,0 +1,110 @@
+---
+import Base from '@/layouts/Base.astro';
+import { createServerClient } from '@/lib/supabase';
+import { buildPrompt } from '@/lib/aiPrompt';
+import { topicLabel, QUESTION_TYPES } from '@/lib/spec';
+import type { Question } from '@/lib/types';
+
+const supabase = createServerClient(Astro.cookies, Astro.request.headers);
+const qid = (Astro.url.searchParams.get('qid') || '').trim();
+
+let found: Question | null = null;
+let suggestions: { qid: string }[] = [];
+let searched = false;
+
+if (qid) {
+  searched = true;
+  const { data } = await supabase.from('questions').select('*').eq('qid', qid).maybeSingle();
+  found = (data as Question) ?? null;
+  if (!found) {
+    // offer near matches (prefix / contains)
+    const { data: near } = await supabase
+      .from('questions').select('qid').ilike('qid', `%${qid}%`).limit(8);
+    suggestions = near ?? [];
+  }
+}
+
+// a small browseable index of what exists
+const { data: index } = await supabase
+  .from('questions').select('qid, component, topic, question_type').order('qid').limit(60);
+const prompt = found ? buildPrompt(found) : '';
+---
+<Base title="Question Lookup">
+  <h1>Question Lookup</h1>
+  <p class="muted">Find any question by its QID (e.g. <code>M.rerevi-examples.1.2.004.D</code>) and reveal its mark scheme.</p>
+
+  <form method="GET" class="card lookup-form no-print">
+    <label for="qid">Question ID</label>
+    <div class="lookup-row">
+      <input class="input" id="qid" name="qid" value={qid} placeholder="E.2024.1.2.A · T.27.1.1.000.D · M.&lt;doc&gt;.1.2.000.A" />
+      <button class="btn btn-primary" type="submit">Look up</button>
+    </div>
+  </form>
+
+  {searched && found && (
+    <div class="card result" style="margin-top:1rem;">
+      <div class="part-head">
+        <span class="pill">{topicLabel(found.component, found.topic)}</span>
+        <span class="part-label display">Part {found.question_type} · {QUESTION_TYPES[found.question_type].part}</span>
+        <span class="muted">[{found.tariff} marks]</span>
+        <span class="qid muted mono">{found.qid}</span>
+      </div>
+      <p class="qtext">{found.question_text}</p>
+      <div class="no-print" style="display:flex; gap:0.6rem; margin:0.5rem 0;">
+        <button class="btn btn-sm" id="reveal">Show mark scheme</button>
+        <button class="btn btn-sm" id="copy">📋 Copy AI prompt</button>
+      </div>
+      <div id="ms" class="mark-scheme" hidden>
+        <strong class="accent">Mark scheme — {found.tariff} marks</strong>
+        <pre class="ms-body">{found.mark_scheme}</pre>
+        {found.indicative && <details><summary class="muted">Indicative content</summary><pre class="ms-body">{found.indicative}</pre></details>}
+      </div>
+      <template id="prompt-src">{prompt}</template>
+    </div>
+  )}
+
+  {searched && !found && (
+    <div class="notice notice-warn" style="margin-top:1rem;">
+      No question found with QID <code>{qid}</code>.
+      {suggestions.length > 0 && (
+        <span> Did you mean: {suggestions.map((s) => <a href={`/question-lookup?qid=${encodeURIComponent(s.qid)}`}>{s.qid}</a>).reduce((p, c) => [p, ' · ', c] as any)}?</span>
+      )}
+    </div>
+  )}
+
+  <details class="card" style="margin-top:1rem;">
+    <summary>Browse available questions ({index?.length ?? 0}{(index?.length ?? 0) >= 60 ? '+' : ''})</summary>
+    <div class="index-grid">
+      {(index ?? []).map((q) => (
+        <a href={`/question-lookup?qid=${encodeURIComponent(q.qid)}`} class="mono small">{q.qid}</a>
+      ))}
+    </div>
+  </details>
+</Base>
+
+<style>
+  .lookup-form { margin-top: 1rem; }
+  .lookup-row { display: flex; gap: 0.6rem; margin-top: 0.4rem; }
+  .lookup-row .input { flex: 1; }
+  .part-head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .part-label { color: var(--accent-strong); }
+  .qid { margin-left: auto; font-size: 0.78rem; }
+  .qtext { font-size: 1.1rem; margin: 0.6rem 0; }
+  .mark-scheme { margin-top: 0.6rem; background: var(--surface-2); border-radius: 10px; padding: 0.75rem 0.9rem; }
+  .ms-body { white-space: pre-wrap; font-family: inherit; margin: 0.4rem 0 0; font-size: 0.92rem; }
+  .mono { font-family: ui-monospace, monospace; }
+  .small { font-size: 0.82rem; }
+  .index-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.35rem; margin-top: 0.75rem; }
+</style>
+
+<script is:inline>
+  (function () {
+    var r = document.getElementById('reveal'), ms = document.getElementById('ms');
+    if (r && ms) r.addEventListener('click', function () { ms.hidden = !ms.hidden; r.textContent = ms.hidden ? 'Show mark scheme' : 'Hide mark scheme'; });
+    var c = document.getElementById('copy'), src = document.getElementById('prompt-src');
+    if (c && src) c.addEventListener('click', async function () {
+      var ta = document.createElement('textarea'); ta.innerHTML = src.innerHTML;
+      try { await navigator.clipboard.writeText(ta.value); var o = c.textContent; c.textContent = '✓ Copied'; setTimeout(function () { c.textContent = o; }, 1500); } catch (e) {}
+    });
+  })();
+</script>

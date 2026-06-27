@@ -1,0 +1,212 @@
+---
+import type { Paper } from '@/lib/generator';
+import { buildPrompt, buildPaperPrompt } from '@/lib/aiPrompt';
+import { QUESTION_TYPES } from '@/lib/spec';
+
+interface Props { paper: Paper; canSave: boolean; isApproved: boolean; source: 'FULL_PAPER' | 'CUSTOM'; }
+const { paper, canSave, isApproved, source } = Astro.props;
+
+const paperPrompt = paper.questions.length ? buildPaperPrompt(paper.questions) : '';
+// number questions sequentially across the flat list for stable copy ids
+let n = 0;
+const numbered = new Map<string, number>();
+for (const q of paper.questions) numbered.set(q.qid, ++n);
+---
+<div class="paper" data-source={source}>
+  <!-- exam-style title page -->
+  <section class="card titlepage">
+    <span class="pill">REREVI practice paper</span>
+    <h2 class="display">{paper.title}</h2>
+    <div class="title-meta">
+      <div><span class="muted">Time allowed</span><strong>{paper.minutes} minutes</strong></div>
+      <div><span class="muted">Total marks</span><strong>{paper.totalMarks}</strong></div>
+      <div><span class="muted">Questions</span><strong>{paper.questions.length}</strong></div>
+    </div>
+    <ul class="instructions muted">
+      <li>Answer <strong>all</strong> parts of every question.</li>
+      <li>Parts marked <strong>(d)</strong> are evaluative — give a balanced argument and a justified conclusion.</li>
+      <li>Where a (d) part is flagged <strong>SPaG</strong>, marks are also awarded for spelling, punctuation, grammar and specialist terms.</li>
+      <li>This paper is paraphrased/original revision material — it is <em>not</em> an official Eduqas paper.</li>
+    </ul>
+    <div class="no-print toolbar">
+      <button class="btn btn-sm" onclick="window.print()">🖨 Print / Save PDF</button>
+      {paperPrompt && <button class="btn btn-sm copy-btn" data-copy="paper-prompt">📋 Copy whole-paper AI prompt</button>}
+      <button class="btn btn-sm" id="reveal-all">👁 Reveal all mark schemes</button>
+    </div>
+  </section>
+
+  {paper.gaps.length > 0 && (
+    <div class="notice notice-warn no-print" style="margin:1rem 0;">
+      <strong>Coverage gaps ({paper.gaps.length}).</strong> The bank doesn't yet have a
+      question for: {paper.gaps.join(' · ')}. <span class="muted">(This doubles as a to-author list.)</span>
+    </div>
+  )}
+
+  {paper.groups.map((g, gi) => (
+    <section class="card group page-break">
+      <div class="group-head">
+        <h3>Question {gi + 1}</h3>
+        <span class="pill pill-muted">{g.topicName}</span>
+      </div>
+      {g.slots.map((slot) => {
+        const q = slot.question;
+        const qnum = q ? numbered.get(q.qid) : null;
+        return (
+          <div class="part">
+            <div class="part-head">
+              <span class="part-label display">{QUESTION_TYPES[slot.type].part}</span>
+              <span class="muted">[{slot.tariff} marks]</span>
+              {slot.spag && <span class="pill">SPaG</span>}
+              {q && <span class="qid muted">{q.qid}</span>}
+            </div>
+            {q ? (
+              <>
+                <p class="qtext">{q.question_text}</p>
+                <div class="no-print part-tools">
+                  <button class="btn btn-sm copy-btn" data-copy={`p-${q.qid}`}>📋 Copy AI prompt</button>
+                  <span class="ms-note muted">Reveal scheme below to self-mark.</span>
+                </div>
+                <div class="mark-scheme" hidden>
+                  <strong class="accent">Mark scheme — {slot.tariff} marks</strong>
+                  <pre class="ms-body">{q.mark_scheme}</pre>
+                  {q.indicative && <details><summary class="muted">Indicative content</summary><pre class="ms-body">{q.indicative}</pre></details>}
+                </div>
+                <template class="prompt-src" data-id={`p-${q.qid}`}>{buildPrompt({ ...q, spag: slot.spag })}</template>
+              </>
+            ) : (
+              <p class="muted gap-line">— no eligible question in the bank yet —</p>
+            )}
+          </div>
+        );
+      })}
+      <div class="no-print group-actions">
+        <button class="btn btn-sm reveal-group">Show mark scheme for this question</button>
+      </div>
+    </section>
+  ))}
+
+  {paperPrompt && <template class="prompt-src" data-id="paper-prompt">{paperPrompt}</template>}
+
+  {paper.questions.length > 0 && (
+    <section class="card no-print scorer">
+      <h3>Score this attempt</h3>
+      {!canSave ? (
+        <p class="muted">Want to save and track this? <a href="/sign-in">Sign in</a> first.</p>
+      ) : !isApproved ? (
+        <p class="notice notice-warn">Your account is awaiting approval — you can self-mark below, but saving unlocks once approved.</p>
+      ) : (
+        <p class="muted">Mark each question (with AI or the revealed scheme), then save.</p>
+      )}
+      <form id="score-form" class="score-form" method="POST" action="/api/attempts">
+        <input type="hidden" name="source" value={source} />
+        <div class="method-row">
+          <label>Marked by:
+            <select class="input method-select" name="method">
+              <option value="SELF">Myself (mark scheme)</option>
+              <option value="AI">AI marking</option>
+            </select>
+          </label>
+        </div>
+        <table class="score-table">
+          <thead><tr><th>#</th><th>QID</th><th>Part</th><th>Mark</th><th>Out of</th></tr></thead>
+          <tbody>
+            {paper.questions.map((q) => (
+              <tr>
+                <td>{numbered.get(q.qid)}</td>
+                <td class="muted mono">{q.qid}</td>
+                <td>{q.question_type}</td>
+                <td>
+                  <input class="input mark-in" type="number" min="0" max={q.tariff} step="1"
+                    name={`mark__${q.qid}`} data-tariff={q.tariff} style="width:5rem;" />
+                </td>
+                <td class="muted">{q.tariff}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr><td colspan="3"><strong>Total</strong></td>
+              <td><strong id="score-total">0</strong></td>
+              <td class="muted">{paper.totalMarks}</td></tr>
+          </tfoot>
+        </table>
+        {canSave && isApproved && <button class="btn btn-primary" type="submit">Save attempt</button>}
+      </form>
+    </section>
+  )}
+</div>
+
+<style>
+  .titlepage { text-align: center; }
+  .titlepage h2 { margin: 0.6rem 0; }
+  .title-meta { display: flex; justify-content: center; gap: 2.5rem; margin: 1rem 0; flex-wrap: wrap; }
+  .title-meta div { display: flex; flex-direction: column; }
+  .title-meta span { font-size: 0.78rem; }
+  .instructions { text-align: left; max-width: 640px; margin: 1rem auto; padding-left: 1.1rem; }
+  .instructions li { margin: 0.3rem 0; }
+  .toolbar { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+  .group { margin-top: 1rem; }
+  .group-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .group-head h3 { margin: 0; }
+  .part { padding: 0.75rem 0; border-top: 1px solid var(--border); }
+  .part:first-of-type { border-top: none; }
+  .part-head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .part-label { font-size: 1.05rem; color: var(--accent-strong); }
+  .qid { font-size: 0.75rem; margin-left: auto; }
+  .qtext { margin: 0.4rem 0; }
+  .part-tools { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.35rem; }
+  .ms-note { font-size: 0.78rem; }
+  .mark-scheme { margin-top: 0.6rem; background: var(--surface-2); border-radius: 10px; padding: 0.75rem 0.9rem; }
+  .ms-body { white-space: pre-wrap; font-family: inherit; margin: 0.4rem 0 0; font-size: 0.9rem; }
+  .gap-line { font-style: italic; }
+  .group-actions { margin-top: 0.75rem; }
+  .scorer { margin-top: 1rem; }
+  .score-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+  .score-table th, .score-table td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border); }
+  .mono { font-family: ui-monospace, monospace; font-size: 0.8rem; }
+  .method-row { margin-bottom: 0.5rem; }
+</style>
+
+<script is:inline>
+  (function () {
+    // copy buttons read from matching <template class="prompt-src" data-id>
+    function srcFor(id) {
+      var tpl = document.querySelector('.prompt-src[data-id="' + id + '"]');
+      return tpl ? tpl.innerHTML : '';
+    }
+    function decode(s) { var el = document.createElement('textarea'); el.innerHTML = s; return el.value; }
+    document.querySelectorAll('.copy-btn').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var txt = decode(srcFor(btn.getAttribute('data-copy')));
+        try { await navigator.clipboard.writeText(txt); var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 1500); } catch (e) {}
+      });
+    });
+    // reveal mark schemes
+    document.querySelectorAll('.reveal-group').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var grp = btn.closest('.group');
+        var hidden = grp.querySelectorAll('.mark-scheme[hidden]');
+        if (hidden.length) { hidden.forEach(function (m) { m.hidden = false; }); btn.textContent = 'Hide mark scheme'; }
+        else { grp.querySelectorAll('.mark-scheme').forEach(function (m) { m.hidden = true; }); btn.textContent = 'Show mark scheme for this question'; }
+      });
+    });
+    var revealAll = document.getElementById('reveal-all');
+    if (revealAll) revealAll.addEventListener('click', function () {
+      document.querySelectorAll('.mark-scheme').forEach(function (m) { m.hidden = false; });
+    });
+    // live score total, clamped to tariff
+    var form = document.getElementById('score-form');
+    if (form) {
+      function recalc() {
+        var total = 0;
+        form.querySelectorAll('.mark-in').forEach(function (inp) {
+          var max = parseInt(inp.getAttribute('data-tariff'), 10);
+          var v = parseInt(inp.value, 10);
+          if (isNaN(v)) return; if (v < 0) { v = 0; inp.value = '0'; } if (v > max) { v = max; inp.value = String(max); }
+          total += v;
+        });
+        var t = document.getElementById('score-total'); if (t) t.textContent = String(total);
+      }
+      form.addEventListener('input', recalc);
+    }
+  })();
+</script>

@@ -1,0 +1,94 @@
+---
+import Base from '@/layouts/Base.astro';
+import { createServerClient } from '@/lib/supabase';
+
+const { user, profile } = Astro.locals;
+if (!user) return Astro.redirect('/sign-in?returnTo=/account');
+
+const justRegistered = Astro.url.searchParams.get('registered') === '1';
+const supabase = createServerClient(Astro.cookies, Astro.request.headers);
+
+const { data: attempts } = await supabase
+  .from('attempts')
+  .select('id, source, method, total, max_total, percent, created_at')
+  .order('created_at', { ascending: false })
+  .limit(10);
+
+const status = profile?.status ?? 'pending';
+const statusInfo = {
+  pending: { pill: 'Pending approval', cls: 'notice-warn', msg: 'Your account is awaiting the owner\'s approval. You can use the whole site now — saving scores unlocks once you\'re approved.' },
+  approved: { pill: 'Approved', cls: '', msg: 'You\'re all set — your scores are saved and tracked.' },
+  suspended: { pill: 'Suspended', cls: 'notice-danger', msg: 'This account is suspended. Contact the owner.' },
+}[status]!;
+---
+<Base title="Account">
+  <h1>Your account</h1>
+
+  {justRegistered && (
+    <div class="notice" style="margin:1rem 0;">
+      🎉 Account created! It now needs approval before scores save — message the owner to get approved.
+    </div>
+  )}
+
+  <div class="grid">
+    <div class="card">
+      <h3>Profile</h3>
+      <p><strong>{profile?.display_name || '—'}</strong></p>
+      <p class="muted small">{user.email}</p>
+      <p style="margin-top:0.6rem;">
+        <span class:list={['pill', { 'pill-muted': status !== 'approved' }]}>{statusInfo.pill}</span>
+        {profile?.role === 'admin' && <span class="pill">Admin</span>}
+      </p>
+      <div class:list={['notice', statusInfo.cls]} style="margin-top:0.8rem;">{statusInfo.msg}</div>
+      <form method="POST" action="/api/auth/logout" style="margin-top:1rem;">
+        <button class="btn" type="submit">Sign out</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Recent attempts</h3>
+      {attempts && attempts.length > 0 ? (
+        <table class="attempts">
+          <thead><tr><th>When</th><th>Type</th><th>Marked</th><th>Score</th></tr></thead>
+          <tbody>
+            {attempts.map((a) => (
+              <tr>
+                <td>{new Date(a.created_at).toLocaleDateString('en-GB')}</td>
+                <td>{a.source === 'FULL_PAPER' ? 'Full paper' : 'Custom'}</td>
+                <td>{a.method === 'AI' ? 'AI' : 'Self'}</td>
+                <td><strong>{a.total ?? '—'}/{a.max_total ?? '—'}</strong> {a.percent != null && <span class="muted">({a.percent}%)</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p class="muted">No saved attempts yet. <a href="/generator">Generate a paper</a> and mark it to start tracking.</p>
+      )}
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1rem;">
+    <h3>Your data (GDPR)</h3>
+    <p class="muted">
+      REREVI stores only your email, optional display name, and saved scores. You can
+      export or delete everything at any time.
+    </p>
+    <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-top:0.8rem;">
+      <a class="btn" href="/api/account/export">⬇ Export my data (JSON)</a>
+      <form method="POST" action="/api/account/delete" onsubmit="return confirm('Permanently delete your account and all saved scores? This cannot be undone.');">
+        <button class="btn btn-danger" type="submit">Delete my account</button>
+      </form>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 1rem; }
+  .small { font-size: 0.82rem; }
+  .attempts { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .attempts th { text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); padding: 0.4rem 0.5rem; }
+  .attempts td { padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+</style>

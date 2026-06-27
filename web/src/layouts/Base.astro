@@ -1,0 +1,54 @@
+---
+import '@/styles/global.css';
+import TopNav from '@/components/TopNav.astro';
+import Footer from '@/components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const { title, description } = Astro.props;
+const fullTitle = title ? `${title} · REREVI` : 'REREVI · GCSE Eduqas RS Revision';
+const desc =
+  description ??
+  'REREVI — a revision site for GCSE Religious Studies (Eduqas Route A: Christianity & Islam). Question generator, mark schemes, AI marking, and more.';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={desc} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <!-- Fonts: Bitcount Single (display / pixel) + Inter (readable body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bitcount+Single:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- No-flash theme init: apply saved theme/typography before first paint. -->
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('rerevi-theme'); // 'light' | 'dark' | 'auto'
+          var ty = localStorage.getItem('rerevi-type'); // 'normal' | 'bitcount'
+          var root = document.documentElement;
+          if (t && t !== 'auto') root.setAttribute('data-theme', t);
+          if (ty === 'bitcount') root.setAttribute('data-type', 'bitcount');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <TopNav />
+    <main class="container" style="padding-block: 2rem 3rem; min-height: 60vh;">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

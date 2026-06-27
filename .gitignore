@@ -1,0 +1,18 @@
+# secrets — NEVER commit
+**/.env
+**/.env.*
+!**/.env.example
+infra/**/.secrets-summary.txt
+
+# node / build
+web/node_modules/
+web/dist/
+web/.astro/
+
+# os / editor
+.DS_Store
+*.log
+npm-debug.log*
+
+# supabase local clone (not part of this repo; lives on the VM)
+rerevi/

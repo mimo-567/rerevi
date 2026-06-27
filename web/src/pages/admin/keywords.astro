@@ -1,0 +1,68 @@
+---
+import Base from '@/layouts/Base.astro';
+import AdminNav from '@/components/AdminNav.astro';
+import { adminClient } from '@/lib/supabase';
+import { ALL_TOPICS, COMPONENTS, topicLabel } from '@/lib/spec';
+
+if (!Astro.locals.isAdmin) return Astro.redirect('/sign-in?returnTo=/admin/keywords');
+const admin = adminClient();
+const { data: keywords } = await admin
+  .from('keywords').select('id, term, definition, component, theme').order('term');
+---
+<Base title="Admin · Keywords">
+  <AdminNav />
+
+  <div class="card">
+    <h3>Add a keyword</h3>
+    <form method="POST" action="/api/admin/keyword" class="kform">
+      <input type="hidden" name="action" value="create" />
+      <div class="row2">
+        <div><label for="term">Term</label><input class="input" id="term" name="term" required /></div>
+        <div>
+          <label for="topic">Topic</label>
+          <select class="input" id="topic" name="topic" required>
+            {COMPONENTS.map((c) => (
+              <optgroup label={c.title}>
+                {ALL_TOPICS.filter((t) => t.component === c.component).map((t) => (
+                  <option value={`${t.component}-${t.topic}`}>{t.name}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div><label for="definition">Definition</label><textarea class="input" id="definition" name="definition" rows="2" required></textarea></div>
+      <div><label for="spec_point">Spec point <span class="muted">(optional)</span></label><input class="input" id="spec_point" name="spec_point" placeholder="LD-2" /></div>
+      <button class="btn btn-primary" type="submit">Add keyword</button>
+    </form>
+  </div>
+
+  <div class="card" style="margin-top:1rem;">
+    <h3>Keywords ({keywords?.length ?? 0})</h3>
+    <table class="t">
+      <thead><tr><th>Term</th><th>Topic</th><th>Definition</th><th></th></tr></thead>
+      <tbody>
+        {(keywords ?? []).map((k) => (
+          <tr>
+            <td><strong>{k.term}</strong></td>
+            <td class="small">{topicLabel(k.component, 1).split(':')[0]} <span class="muted">{k.theme}</span></td>
+            <td class="small">{k.definition}</td>
+            <td><form method="POST" action="/api/admin/keyword" onsubmit="return confirm('Delete?');"><input type="hidden" name="action" value="delete" /><input type="hidden" name="id" value={k.id} /><button class="btn btn-sm btn-danger">Delete</button></form></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    {(!keywords || keywords.length === 0) && <p class="muted">No keywords yet.</p>}
+  </div>
+</Base>
+
+<style>
+  .kform { display: grid; gap: 0.7rem; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+  .small { font-size: 0.82rem; }
+  .t { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .t th { text-align: left; color: var(--muted); border-bottom: 1px solid var(--border); padding: 0.4rem 0.5rem; }
+  .t td { padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  @media (max-width: 640px) { .row2 { grid-template-columns: 1fr; } }
+</style>

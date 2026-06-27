@@ -1,0 +1,49 @@
+---
+import Base from '@/layouts/Base.astro';
+---
+<Base title="AI Marking">
+  <h1>AI Marking</h1>
+  <p class="lede muted">
+    REREVI builds a ready-made prompt for every question. Paste it into any AI —
+    ChatGPT, Claude, Gemini, Grok — together with your answer, and it marks you
+    against <em>our</em> mark scheme and gives feedback. It's an <strong>approximate</strong>
+    practice mark, not an official Eduqas result.
+  </p>
+
+  <div class="card">
+    <h3>How to use it</h3>
+    <ol class="steps">
+      <li>Generate a paper or look up a question.</li>
+      <li>Hit <strong>📋 Copy AI prompt</strong> (per question) or <strong>Copy whole-paper AI prompt</strong>.</li>
+      <li>Paste it into your AI of choice, then paste your answer where it says <code>{'{paste your answer here}'}</code>.</li>
+      <li>Read the band, mark, strengths and "to reach the next band" feedback.</li>
+      <li>Back on REREVI, choose <em>AI marking</em> in the scorer and record the mark to track it.</li>
+    </ol>
+    <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+      <a href="/generator" class="btn btn-primary">Generate a paper →</a>
+      <a href="/question-lookup" class="btn">Look up a question</a>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1rem;">
+    <h3>Why it's reliable-ish</h3>
+    <ul>
+      <li><strong>Self-contained:</strong> the prompt carries the full mark scheme inline, so the AI doesn't need anything else.</li>
+      <li><strong>Constrained:</strong> it's told to mark <em>only</em> against the scheme and use a fixed output format — less "grading on vibes".</li>
+      <li><strong>Honest:</strong> every prompt states the mark is approximate.</li>
+      <li><strong>Evaluation-aware:</strong> for (d) parts it specifically checks for balance, reasoning and a justified conclusion — where marks are usually lost.</li>
+    </ul>
+    <div class="notice notice-warn">
+      AIs can still be too generous or too harsh. Use it to find <em>gaps</em>, then
+      confirm borderline marks against the mark scheme yourself.
+    </div>
+  </div>
+</Base>
+
+<style>
+  .lede { font-size: 1.1rem; max-width: 60ch; }
+  .steps, ul { color: var(--text); }
+  .steps li, ul li { margin: 0.4rem 0; }
+  h3 { margin-top: 0; }
+  .card + .card { margin-top: 1rem; }
+</style>
