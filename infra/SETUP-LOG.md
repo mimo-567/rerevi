@@ -141,6 +141,22 @@ After that the public URL serves the app; Supabase stays reachable via the proxi
 paths. Rollback = repoint to `:8000`. Update flow: `cd ~/rerevi-app && git pull &&
 infra/deploy/deploy.sh`.
 
+## Step 13 — Live + admin subdomain + Google prep
+- **Tunnel repointed** to `:8080` (owner) — `https://rerevi.zafirshirazi.com` now
+  serves the app; verified off-box (home 200, `/auth/v1/health` 200, `/generator` 200).
+- **Admin subdomain:** app middleware routes `admin.rerevi.*` root → `/admin`; auth
+  cookies now scoped to `.rerevi.zafirshirazi.com` so one sign-in covers both hosts.
+  Redeployed. Verified through Caddy on the VM. **Owner step:** add tunnel public
+  hostname `admin.rerevi.zafirshirazi.com` → `http://localhost:8080` (auto-creates DNS).
+- **Google OAuth pre-wired:** uncommented `GOTRUE_EXTERNAL_GOOGLE_*` in the supabase
+  `docker-compose.yml` (backup `docker-compose.yml.bak2`); added `GOOGLE_ENABLED=false`
+  + empty `GOOGLE_CLIENT_ID/SECRET` to `~/rerevi/.env`; added
+  `admin.rerevi.zafirshirazi.com/**` to `ADDITIONAL_REDIRECT_URLS`; restarted `auth`.
+  Remaining = create Google creds + fill `.env` + flip enabled. See
+  [`GOOGLE-OAUTH.md`](./GOOGLE-OAUTH.md).
+- GitHub: repo public at `github.com/mimo-567/rerevi`; deploy = `git pull` +
+  `infra/deploy/deploy.sh` (or rsync from the Mac).
+
 ## Pending
 - Enable **Google** auth provider in Studio (OAuth client id/secret).
 - Proxmox: schedule VM backups; cron `pg_dump` off-box.
