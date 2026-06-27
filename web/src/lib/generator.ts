@@ -2,7 +2,7 @@
 // slot ONLY with questions valid for it (eligibility rule, plans/paper-generator.md §3).
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Question } from './types';
-import { COMPONENT_1, COMPONENT_2, COMPONENT_3, QUESTION_TYPES, Q_TYPE_ORDER, topicLabel, type QType } from './spec';
+import { COMPONENT_1, COMPONENT_2, COMPONENT_3, QUESTION_TYPES, Q_TYPE_ORDER, topicLabel, effectiveTariff, type QType } from './spec';
 
 export type SourcePref = 'E' | 'ETM' | 'ANY';
 export type SpagMode = 'all' | 'first' | 'none';
@@ -112,7 +112,8 @@ export async function assembleFullPaper(
     groups.push({ component: t.component, topic: t.topic, topicName: topicLabel(t.component, t.topic), slots });
   }
 
-  const totalMarks = groups.reduce((s, g) => s + g.slots.reduce((ss, sl) => ss + sl.tariff, 0), 0);
+  const totalMarks = groups.reduce(
+    (s, g) => s + g.slots.reduce((ss, sl) => ss + effectiveTariff(sl.tariff, sl.spag), 0), 0);
   return { title: bp.title, minutes: bp.minutes, totalMarks, groups, gaps, questions: flat };
 }
 
@@ -163,7 +164,7 @@ export async function assembleCustom(supabase: SupabaseClient, r: CustomReq): Pr
     }
   }
 
-  const totalMarks = flat.reduce((s, q) => s + q.tariff, 0);
+  const totalMarks = flat.reduce((s, q) => s + effectiveTariff(q.tariff, q.spag), 0);
   const minutes = Math.round(totalMarks * 1.0); // ~1 min/mark rough guide
   return { title: 'Custom question set', minutes, totalMarks, groups, gaps, questions: flat };
 }

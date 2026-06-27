@@ -1,7 +1,7 @@
 ---
 import type { Paper } from '@/lib/generator';
 import { buildPrompt, buildPaperPrompt } from '@/lib/aiPrompt';
-import { QUESTION_TYPES } from '@/lib/spec';
+import { QUESTION_TYPES, SPAG_MARKS, effectiveTariff } from '@/lib/spec';
 
 interface Props { paper: Paper; canSave: boolean; isApproved: boolean; source: 'FULL_PAPER' | 'CUSTOM'; }
 const { paper, canSave, isApproved, source } = Astro.props;
@@ -55,8 +55,8 @@ for (const q of paper.questions) numbered.set(q.qid, ++n);
           <div class="part">
             <div class="part-head">
               <span class="part-label display">{QUESTION_TYPES[slot.type].part}</span>
-              <span class="muted">[{slot.tariff} marks]</span>
-              {slot.spag && <span class="pill">SPaG</span>}
+              <span class="muted">[{slot.spag ? `${slot.tariff} + ${SPAG_MARKS} SPaG = ${effectiveTariff(slot.tariff, slot.spag)}` : slot.tariff} marks]</span>
+              {slot.spag && <span class="pill">SPaG +{SPAG_MARKS}</span>}
               {q && <span class="qid muted">{q.qid}</span>}
             </div>
             {q ? (
@@ -67,8 +67,9 @@ for (const q of paper.questions) numbered.set(q.qid, ++n);
                   <span class="ms-note muted">Reveal scheme below to self-mark.</span>
                 </div>
                 <div class="mark-scheme" hidden>
-                  <strong class="accent">Mark scheme — {slot.tariff} marks</strong>
+                  <strong class="accent">Mark scheme — {slot.tariff} marks{slot.spag ? ` + ${SPAG_MARKS} SPaG` : ''}</strong>
                   <pre class="ms-body">{q.mark_scheme}</pre>
+                  {slot.spag && <p class="muted" style="margin:0.4rem 0 0;">SPaG: up to {SPAG_MARKS} additional marks for accurate spelling, punctuation, grammar and specialist terms.</p>}
                   {q.indicative && <details><summary class="muted">Indicative content</summary><pre class="ms-body">{q.indicative}</pre></details>}
                 </div>
                 <template class="prompt-src" data-id={`p-${q.qid}`}>{buildPrompt({ ...q, spag: slot.spag })}</template>
@@ -110,18 +111,22 @@ for (const q of paper.questions) numbered.set(q.qid, ++n);
         <table class="score-table">
           <thead><tr><th>#</th><th>QID</th><th>Part</th><th>Mark</th><th>Out of</th></tr></thead>
           <tbody>
-            {paper.questions.map((q) => (
-              <tr>
-                <td>{numbered.get(q.qid)}</td>
-                <td class="muted mono">{q.qid}</td>
-                <td>{q.question_type}</td>
-                <td>
-                  <input class="input mark-in" type="number" min="0" max={q.tariff} step="1"
-                    name={`mark__${q.qid}`} data-tariff={q.tariff} style="width:5rem;" />
-                </td>
-                <td class="muted">{q.tariff}</td>
-              </tr>
-            ))}
+            {paper.questions.map((q) => {
+              const eff = effectiveTariff(q.tariff, q.spag);
+              return (
+                <tr>
+                  <td>{numbered.get(q.qid)}</td>
+                  <td class="muted mono">{q.qid}</td>
+                  <td>{q.question_type}{q.spag && <span class="pill" style="margin-left:0.3rem;">SPaG</span>}</td>
+                  <td>
+                    <input class="input mark-in" type="number" min="0" max={eff} step="1"
+                      name={`mark__${q.qid}`} data-tariff={eff} style="width:5rem;" />
+                    {q.spag && <input type="hidden" name={`spag__${q.qid}`} value="1" />}
+                  </td>
+                  <td class="muted">{eff}</td>
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot>
             <tr><td colspan="3"><strong>Total</strong></td>

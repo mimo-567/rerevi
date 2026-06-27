@@ -62,3 +62,10 @@ export const Q_TYPE_ORDER: QType[] = ['A', 'B', 'C', 'D'];
 export function tariffOf(type: QType): number {
   return QUESTION_TYPES[type].tariff;
 }
+
+// Eduqas awards an extra 6 marks for SPaG on the one evaluative (d) question per
+// paper that carries it, so that question is worth 15 + 6 = 21.
+export const SPAG_MARKS = 6;
+export function effectiveTariff(tariff: number, spag: boolean): number {
+  return tariff + (spag ? SPAG_MARKS : 0);
+}

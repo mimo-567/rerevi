@@ -2,14 +2,18 @@
 // Provider-agnostic, marks ONLY against our mark scheme, states it's approximate.
 // Mirrors plans/ai-marking-prompt.md.
 import type { Question } from './types';
-import { topicLabel } from './spec';
+import { topicLabel, SPAG_MARKS, effectiveTariff } from './spec';
 
 export function buildPrompt(q: Question): string {
   const topicName = topicLabel(q.component, q.topic);
   const spec = q.spec_point ?? '—';
+  const eff = effectiveTariff(q.tariff, q.spag);
+  const marksLine = q.spag
+    ? `${q.tariff} marks + ${SPAG_MARKS} SPaG = ${eff} marks total`
+    : `${q.tariff} marks`;
   const spagLine = q.spag ? ' · includes SPaG (spelling, punctuation & grammar)' : '';
   const spagInstruction = q.spag
-    ? '6. Judge SPaG: assess spelling, punctuation, grammar and use of specialist terms, and note its effect on the mark.'
+    ? `6. Award SPaG marks (out of ${SPAG_MARKS}): assess spelling, punctuation, grammar and use of specialist terms, and add them to the content mark.`
     : '';
 
   return `You are an experienced Eduqas GCSE Religious Studies (Route A) examiner. Mark the
@@ -18,7 +22,7 @@ use the exact band/level boundaries given. Do not invent extra criteria.
 
 QUESTION
 - Component ${q.component} · Theme/Topic: ${topicName} · Spec: ${spec}
-- Part ${q.question_type} · ${q.tariff} marks${spagLine}
+- Part ${q.question_type} · ${marksLine}${spagLine}
 - Question: ${q.question_text}
 
 MARK SCHEME (band/level descriptors)
@@ -34,14 +38,14 @@ STUDENT ANSWER
 
 INSTRUCTIONS
 1. Decide which band/level the answer sits in, and justify it against the descriptor wording.
-2. Give a numeric mark out of ${q.tariff}.
+2. Give a content mark out of ${q.tariff}.
 3. List 2–3 specific strengths (quote the student where relevant).
 4. List the precise gaps that stop it reaching the next band (no evaluation/judgement, no scripture/source, one-sided argument, etc.).
 5. Give ONE improved exemplar paragraph at the top band.
 ${spagInstruction}
 
 OUTPUT FORMAT (exactly)
-Mark: X / ${q.tariff}  (Band/Level n)
+Mark: X / ${eff}  (Band/Level n${q.spag ? `; content X/${q.tariff} + SPaG X/${SPAG_MARKS}` : ''})
 Why this band: …
 Strengths: …
 To reach the next band: …
@@ -52,11 +56,13 @@ Remember: this is an approximate practice mark, not an official Eduqas result.`;
 
 // Whole-paper bundled prompt: every question + scheme in order, then a summary ask.
 export function buildPaperPrompt(questions: Question[]): string {
-  const total = questions.reduce((s, q) => s + q.tariff, 0);
+  const total = questions.reduce((s, q) => s + effectiveTariff(q.tariff, q.spag), 0);
   const blocks = questions.map((q, i) => {
     const topicName = topicLabel(q.component, q.topic);
-    const spagLine = q.spag ? ' · includes SPaG' : '';
-    return `── Q${i + 1} [${q.qid}] · ${topicName} · Part ${q.question_type} · ${q.tariff} marks${spagLine}
+    const eff = effectiveTariff(q.tariff, q.spag);
+    const marks = q.spag ? `${q.tariff} + ${SPAG_MARKS} SPaG = ${eff} marks` : `${q.tariff} marks`;
+    const spagLine = q.spag ? ' · includes SPaG (award up to 6 extra)' : '';
+    return `── Q${i + 1} [${q.qid}] · ${topicName} · Part ${q.question_type} · ${marks}${spagLine}
 Question: ${q.question_text}
 Mark scheme:
 ${q.mark_scheme}

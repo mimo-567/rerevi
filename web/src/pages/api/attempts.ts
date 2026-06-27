@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createServerClient } from '@/lib/supabase';
+import { effectiveTariff } from '@/lib/spec';
 
 // Saves a scored attempt + its per-question items. RLS enforces that only an
 // approved owner can insert (policy `attempts_insert`).
@@ -12,11 +13,14 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const source = String(form.get('source') || 'CUSTOM') === 'FULL_PAPER' ? 'FULL_PAPER' : 'CUSTOM';
   const method = String(form.get('method') || 'SELF') === 'AI' ? 'AI' : 'SELF';
 
-  // collect mark__<qid> entries
+  // collect mark__<qid> entries + which questions carried SPaG in this attempt
   const marks: { qid: string; mark: number }[] = [];
+  const spagSet = new Set<string>();
   for (const [k, v] of form.entries()) {
     if (k.startsWith('mark__') && String(v).trim() !== '') {
       marks.push({ qid: k.slice(6), mark: Number(v) });
+    } else if (k.startsWith('spag__') && String(v) === '1') {
+      spagSet.add(k.slice(6));
     }
   }
   if (marks.length === 0) return redirect('/generator?error=' + encodeURIComponent('Enter at least one mark before saving.'));
@@ -28,7 +32,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   let total = 0, maxTotal = 0;
   const items = marks.filter((m) => tariffOf.has(m.qid)).map((m) => {
-    const tariff = tariffOf.get(m.qid)!;
+    // SPaG adds 6 to the achievable marks for the flagged (d) question.
+    const tariff = effectiveTariff(tariffOf.get(m.qid)!, spagSet.has(m.qid));
     const awarded = Math.max(0, Math.min(tariff, Math.round(m.mark)));
     total += awarded; maxTotal += tariff;
     return { qid: m.qid, mark_awarded: awarded, tariff };
