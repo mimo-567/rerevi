@@ -35,6 +35,17 @@ import Base from '@/layouts/Base.astro';
     </div>
   </div>
 
+  <div class="card timing">
+    <h3>Timing guide</h3>
+    <p class="muted">Use this when you generate a paper. Do not let short questions eat the time that belongs to evaluations.</p>
+    <div class="timing-grid">
+      <div><span class="pill pill-muted">(a) · 2 marks</span><strong>2 minutes</strong><p class="muted">Definition + one clear detail. Move on quickly.</p></div>
+      <div><span class="pill pill-muted">(b) · 5 marks</span><strong>5 minutes</strong><p class="muted">Several explained points, not a list of keywords.</p></div>
+      <div><span class="pill pill-muted">(c) · 8 marks</span><strong>8 minutes</strong><p class="muted">Two traditions or two developed lines of influence.</p></div>
+      <div><span class="pill pill-muted">(d) · 15 marks</span><strong>15–18 minutes</strong><p class="muted">Both sides, religious teaching, judgement. Add SPaG care if flagged.</p></div>
+    </div>
+  </div>
+
   <div class="card">
     <h3>A sensible week</h3>
     <p class="muted">Pick one theme. Mon: keywords + a (a)/(b) drill. Wed: a (c) on the same theme, AI-marked. Fri: a full A–D for that theme, timed and self-marked. Track the scores and watch the trend on your <a href="/account">account page</a>.</p>
@@ -48,8 +59,12 @@ import Base from '@/layouts/Base.astro';
   .loop-grid > div { display: flex; flex-direction: column; gap: 0.3rem; }
   .big { font-size: 2.2rem; line-height: 1; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .timing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; margin-top: 0.8rem; }
+  .timing-grid > div { border: 1px solid var(--border); border-radius: 12px; padding: 0.9rem; background: var(--surface-2); }
+  .timing-grid strong { display: block; margin-top: 0.55rem; font-size: 1.15rem; }
   ul { color: var(--text); } ul li { margin: 0.35rem 0; }
   .card + .card, .loop { margin-top: 0; } .card { margin-bottom: 1rem; }
   h3 { margin-top: 0; }
-  @media (max-width: 760px) { .loop-grid, .cols { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .timing-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px) { .loop-grid, .cols, .timing-grid { grid-template-columns: 1fr; } }
 </style>
