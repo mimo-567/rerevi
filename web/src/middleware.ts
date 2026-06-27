@@ -4,13 +4,6 @@ import { defineMiddleware } from 'astro:middleware';
 import { createServerClient } from '@/lib/supabase';
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  // admin.rerevi.* is the admin entrance: root → the dashboard.
-  const host = (context.request.headers.get('host') || '').split(':')[0];
-  const isAdminHost = host.startsWith('admin.');
-  if (isAdminHost && context.url.pathname === '/') {
-    return context.redirect('/admin');
-  }
-
   const supabase = createServerClient(context.cookies, context.request.headers);
 
   // getUser() validates the JWT with the auth server (safe for SSR auth gating).

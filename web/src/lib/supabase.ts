@@ -21,24 +21,14 @@ function parseCookieHeader(header: string | null): { name: string; value: string
   }).filter((c) => c.name);
 }
 
-// Apex of the public site — sharing the cookie across this domain lets a single
-// sign-in cover both rerevi.* and admin.rerevi.* . Host-only on localhost.
-const COOKIE_DOMAIN = '.rerevi.zafirshirazi.com';
-
-function cookieDomainFor(headers: Headers): string | undefined {
-  const host = (headers.get('host') || '').split(':')[0];
-  return host.endsWith('rerevi.zafirshirazi.com') ? COOKIE_DOMAIN : undefined;
-}
-
 export function createServerClient(cookies: AstroCookies, headers: Headers) {
-  const domain = cookieDomainFor(headers);
   const cookieMethods: CookieMethodsServer = {
     getAll() {
       return parseCookieHeader(headers.get('cookie'));
     },
     setAll(toSet) {
       for (const { name, value, options } of toSet) {
-        cookies.set(name, value, { ...options, path: '/', ...(domain ? { domain } : {}) });
+        cookies.set(name, value, { ...options, path: '/' });
       }
     },
   };
