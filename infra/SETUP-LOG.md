@@ -124,6 +124,23 @@ the Cloudflare dashboard, not in a local config file.
 
 Still to do: Redirect Rule `rerevi.zsh.name → rerevi.zafirshirazi.com`.
 
+## Step 12 — App deployed (Astro + Caddy)
+Owner authorized the build ("start building") and going live. Synced the repo to
+`~/rerevi-app` (rsync, no node_modules/.env), created `~/rerevi-app/web/.env` on the
+VM from `~/rerevi/.env` (chmod 600), and ran `infra/deploy/deploy.sh`:
+- built `rerevi-app:latest` (multi-stage node:22-alpine), running on `127.0.0.1:4321`;
+- started `rerevi-caddy` (host network, `:8080`) splitting traffic:
+  `/auth /rest /realtime /storage /functions /graphql` → Kong `:8000`, else → app `:4321`.
+
+Verified on the VM: `:8080/` → app (200), `:8080/auth/v1/health` → 200,
+`:8080/rest/v1/spec_points` → 200.
+
+**Remaining (owner, dashboard):** repoint the tunnel public hostname
+`rerevi.zafirshirazi.com` service from `http://localhost:8000` → `http://localhost:8080`.
+After that the public URL serves the app; Supabase stays reachable via the proxied
+paths. Rollback = repoint to `:8000`. Update flow: `cd ~/rerevi-app && git pull &&
+infra/deploy/deploy.sh`.
+
 ## Pending
 - Enable **Google** auth provider in Studio (OAuth client id/secret).
 - Proxmox: schedule VM backups; cron `pg_dump` off-box.
