@@ -9,7 +9,9 @@ import type { AstroCookies } from 'astro';
 
 const URL = import.meta.env.PUBLIC_SUPABASE_URL;
 const ANON = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-const SERVICE = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+// Server-only secret. NOT a build arg (we don't bake secrets into the image), so
+// import.meta.env is undefined in the built bundle — read it from runtime env.
+const SERVICE = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function parseCookieHeader(header: string | null): { name: string; value: string }[] {
   if (!header) return [];
