@@ -6,7 +6,7 @@ export type NavItem = {
   external?: boolean;
 };
 
-export const GITHUB_URL = 'https://github.com/zafirshirazi/rerevi';
+export const GITHUB_URL = 'https://github.com/mimo-567/rerevi';
 
 export const NAV: NavItem[] = [
   { label: 'Home', href: '/' },
